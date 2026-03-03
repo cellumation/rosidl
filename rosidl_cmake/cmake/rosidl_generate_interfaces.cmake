@@ -119,6 +119,7 @@ macro(rosidl_generate_interfaces target)
   endforeach()
 
   # adapt all non-idl files
+  set(rosidl_adapt_interfaces_TARGET "")
   if(NOT "${_non_idl_tuples}" STREQUAL "")
     if(rosidl_adapter_FOUND)
       # wrap the non-idl tuples in a file
@@ -133,6 +134,7 @@ macro(rosidl_generate_interfaces target)
         _idl_adapter_tuples
         "${_adapter_arguments_file}"
         TARGET ${target}
+        NON_IDL_TUPLES ${_non_idl_tuples}
       )
     endif()
   endif()
@@ -213,6 +215,10 @@ macro(rosidl_generate_interfaces target)
     ${_non_idl_files}
   )
 
+  if(rosidl_adapt_interfaces_TARGET)
+    add_dependencies(${target} ${rosidl_adapt_interfaces_TARGET})
+  endif()
+
   if(NOT _ARG_SKIP_INSTALL)
     if(NOT _ARG_SKIP_GROUP_MEMBERSHIP_CHECK)
       set(_group_name "rosidl_interface_packages")
@@ -275,6 +281,15 @@ macro(rosidl_generate_interfaces target)
   foreach(_idl_tuple ${rosidl_generate_interfaces_IDL_TUPLES})
     string(REGEX REPLACE ":([^:]*)$" "/\\1" _abs_idl_file "${_idl_tuple}")
     list(APPEND rosidl_generate_interfaces_ABS_IDL_FILES "${_abs_idl_file}")
+  endforeach()
+
+  # Compute the list of adapter-generated .idl files (those produced at build
+  # time by add_custom_command) so downstream generators can skip configure-time
+  # existence checks for them.
+  set(rosidl_generate_interfaces_ADAPTER_IDL_FILES)
+  foreach(_idl_tuple ${_idl_adapter_tuples})
+    string(REGEX REPLACE ":([^:]*)$" "/\\1" _abs_idl_file "${_idl_tuple}")
+    list(APPEND rosidl_generate_interfaces_ADAPTER_IDL_FILES "${_abs_idl_file}")
   endforeach()
 
   ament_execute_extensions("rosidl_generate_idl_interfaces")
